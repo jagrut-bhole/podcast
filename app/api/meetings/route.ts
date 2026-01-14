@@ -29,8 +29,8 @@ export async function GET(req: NextRequest) {
         status: true,
         inviteCode: true,
         createdAt: true,
-        startedAt : true,
-        endedAt : true,
+        startedAt: true,
+        endedAt: true,
         participants: {
           select: {
             user: {
@@ -102,12 +102,18 @@ export async function POST(req: NextResponse): Promise<NextResponse> {
       .substring(2, 10)
       .toUpperCase();
 
+    const publicCode = Math.random()
+      .toString(36)
+      .substring(2, 10)
+      .toUpperCase();
+
     const meetingCreate = await prisma.meeting.create({
       data: {
         title: data.title,
         hostId: session.user.id,
         scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
         inviteCode: inviteCode,
+        publicCode: publicCode,
         status: "SCHEDULED",
         livekitRoomName: `${session.user.email}room-${Math.random().toString(36).substring(2, 15)}`,
       },

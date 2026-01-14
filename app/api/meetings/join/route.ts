@@ -35,6 +35,7 @@ export async function POST(
     }
 
     const inviteCode = await req.json();
+
     if (!inviteCode) {
       return NextResponse.json(
         {
@@ -61,6 +62,30 @@ export async function POST(
         },
         {
           status: 404,
+        },
+      );
+    }
+
+    if (meeting.hostId === session.user.id) {
+      return NextResponse.json(
+        {
+          success: true,
+          message: "Host joined the meeting successfully",
+        },
+        {
+          status: 200,
+        },
+      );
+    }
+
+    if (meeting.inviteCode !== inviteCode.code) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid invite code",
+        },
+        {
+          status: 403,
         },
       );
     }

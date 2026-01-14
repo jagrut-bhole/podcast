@@ -44,3 +44,5 @@ next-env.d.ts
 
 Architecture.md
 Endpoints.txt
+README_REDIS_CACHING.md
+REDIS_SCHEMA_GUIDE.md

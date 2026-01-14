@@ -1,0 +1,287 @@
+"use client";
+
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+import { signOut } from "next-auth/react";
+import axios from "axios";
+import { useToast } from "@/components/ui/toast";
+import Asidebar from "@/components/Asidebar";
+import FormSection from "@/components/Form-section";
+import { SessionData } from "@/types/type";
+
+interface Meeting {
+  id: string;
+  title: string;
+  scheduledAt: string | null;
+  status: "SCHEDULED" | "LIVE" | "ENDED";
+  createdAt: string;
+}
+
+export default function DashboardPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const { showToast } = useToast();
+
+  const [activeMode, setActiveMode] = useState<"plan" | "live" | null>(null);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/signin");
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (session?.user) {
+      fetchMeetings();
+    }
+  }, [session]);
+
+  // Click away listener for menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpenId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const fetchMeetings = async () => {
+    try {
+      const res = await axios.get("/api/meetings");
+      if (res.data.success) {
+        setMeetings(res.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching meetings:", error);
+    }
+  };
+
+  const handleDeleteMeeting = async (meetingId: string) => {
+    setMenuOpenId(null);
+    try {
+      const res = await axios.delete("/api/meetings/delete", {
+        data: { meetingId }
+      });
+      if (res.data.success) {
+        showToast("Meeting deleted successfully", "success", "top-right");
+        fetchMeetings();
+      }
+    } catch (error) {
+      console.error("Error deleting meeting:", error);
+      showToast("Failed to delete meeting", "error", "top-right");
+    }
+  };
+
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#151515] text-white">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!session || !session.user) {
+    return null;
+  }
+
+  const handleCreateMeeting = async (data: SessionData) => {
+    setIsLoading(true);
+    try {
+      if (activeMode === "live") {
+        // Use go-live endpoint for immediate start
+        const response = await axios.post("/api/meetings/go-live", {
+          title: data.name,
+          participantEmails: data.inviteEmails,
+        });
+
+        if (response.data.success) {
+          showToast("Live session starting...", "success", "top-right");
+          router.push(`/meeting/${response.data.data.meetingId}`);
+        }
+      } else {
+        // Parse date (YYYY-MM-DD) and time (HH:MM AM/PM)
+        const [year, month, day] = data.date.split("-").map(Number);
+        const [time, period] = data.startTime.split(" ");
+        let [hours, minutes] = time.split(":").map(Number);
+
+        if (period === "PM" && hours !== 12) hours += 12;
+        if (period === "AM" && hours === 12) hours = 0;
+
+        const dateObj = new Date(year, month - 1, day, hours, minutes);
+        const scheduledAt = dateObj.toISOString();
+
+        const response = await axios.post("/api/meetings/create", {
+          title: data.name,
+          scheduledAt,
+          participantEmails: data.inviteEmails,
+        });
+
+        if (response.data.success) {
+          showToast("Meeting scheduled successfully", "success", "top-right");
+          fetchMeetings();
+          setActiveMode(null);
+        }
+      }
+    } catch (error: any) {
+      console.error("Error creating meeting:", error);
+      showToast(error.response?.data?.message || "Error creating meeting", "error", "top-right");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getCardDateDisplay = (dateStr: string | null) => {
+    if (!dateStr) return { month: "", day: "" };
+    const date = new Date(dateStr);
+    const month = date.toLocaleString("default", { month: "short" }).toUpperCase();
+    const day = date.getDate();
+    return { month, day };
+  };
+
+  const formatTimeRange = (meeting: Meeting) => {
+    if (meeting.status === "LIVE") return "Live Now";
+    if (!meeting.scheduledAt) return "No time set";
+
+    const start = new Date(meeting.scheduledAt);
+    const end = new Date(start.getTime() + 60 * 60 * 1000); // 1h default
+
+    const format = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    const now = new Date();
+    const isToday = start.getDate() === now.getDate() && start.getMonth() === now.getMonth() && start.getFullYear() === now.getFullYear();
+    const dayPrefix = isToday ? "Today" : start.toLocaleDateString();
+
+    return `${dayPrefix} • ${format(start)} - ${format(end)}`;
+  }
+
+  return (
+    <div className="flex min-h-screen bg-[#151515]">
+      <Asidebar />
+      <main className="flex-1 overflow-auto p-10 relative">
+        <div className="flex justify-between items-center mb-12">
+          <h1 className="text-4xl font-bold text-white tracking-tight">Home</h1>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setActiveMode("live")}
+              className="bg-white hover:bg-gray-200 text-black px-6 py-3 rounded-xl text-sm font-semibold transition-all shadow-xl flex items-center space-x-2"
+            >
+              <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></div>
+              <span>Go Live</span>
+            </button>
+            <button
+              onClick={() => setActiveMode("plan")}
+              className="bg-[#252525] hover:bg-[#333] text-white px-6 py-3 rounded-xl text-sm font-semibold transition-all border border-gray-800 shadow-xl flex items-center space-x-2"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 4v16m8-8H4"
+                ></path>
+              </svg>
+              <span>Plan meeting</span>
+            </button>
+          </div>
+        </div>
+
+        <section>
+          <h2 className="text-2xl font-bold text-white mb-6">Schedules</h2>
+
+          {meetings.length === 0 ? (
+            <p className="text-gray-500">No meetings found.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {meetings.map((meeting) => {
+                const { month, day } = getCardDateDisplay(meeting.scheduledAt || meeting.createdAt);
+                return (
+                  <div key={meeting.id} className="bg-[#1c1c1c] rounded-2xl overflow-hidden border border-gray-800/50 hover:border-gray-700 transition-all group relative">
+                    {/* Three dots menu */}
+                    <div className="absolute top-4 right-4 z-10" ref={menuOpenId === meeting.id ? menuRef : null}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMenuOpenId(menuOpenId === meeting.id ? null : meeting.id);
+                        }}
+                        className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-white"
+                      >
+                        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+                          <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                        </svg>
+                      </button>
+
+                      {menuOpenId === meeting.id && (
+                        <div className="absolute right-0 mt-2 w-36 bg-[#252525] border border-gray-800 rounded-lg shadow-2xl py-1 animate-in fade-in zoom-in-95 duration-100">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteMeeting(meeting.id); }}
+                            className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-400/10 flex items-center space-x-2"
+                          >
+                            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div
+                      className="h-40 bg-[#2d2d3f] flex items-center justify-center cursor-pointer relative"
+                      onClick={() => router.push(`/meeting/${meeting.id}`)}
+                    >
+                      <div className="text-center group-hover:scale-110 transition-transform duration-300">
+                        <div className="text-[#a5a5ff] font-bold text-xl tracking-wider">{month}</div>
+                        <div className="text-[#a5a5ff] font-bold text-3xl">{day}</div>
+                      </div>
+                      {meeting.status === "LIVE" && (
+                        <div className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center space-x-1 uppercase tracking-wider">
+                          <div className="w-1 h-1 rounded-full bg-white animate-pulse"></div>
+                          <span>Live</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-5">
+                      <h3 className="text-white font-bold text-lg mb-2 truncate">{meeting.title}</h3>
+                      <p className="text-gray-400 text-xs font-medium">
+                        {formatTimeRange(meeting)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Modal Overlay */}
+        {activeMode && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-[#1c1c1c] w-full max-w-2xl rounded-2xl border border-gray-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-8">
+                <FormSection
+                  mode={activeMode}
+                  onClose={() => setActiveMode(null)}
+                  onSubmit={handleCreateMeeting}
+                  isLoading={isLoading}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+      </main>
+    </div>
+  );
+}

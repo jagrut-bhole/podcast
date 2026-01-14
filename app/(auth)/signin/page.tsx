@@ -8,14 +8,14 @@ export default function LoginPage() {
       <h1>Sign In</h1>
 
       <button
-        onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+        onClick={() => signIn("google", { callbackUrl: "/home" })}
         className="px-6 py-3 bg-white border rounded-lg text-black"
       >
         Sign in with Google
       </button>
 
       <button
-        onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
+        onClick={() => signIn("github", { callbackUrl: "/home" })}
         className="px-6 py-3 bg-gray-900 text-white rounded-lg"
       >
         Sign in with GitHub
