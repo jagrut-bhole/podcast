@@ -39,7 +39,7 @@ export function OrbitalLoader({
     <div className={cn(orbitalLoaderVariants({ messagePlacement }))}>
       <div className={cn("relative w-16 h-16", className)} {...props}>
         <motion.div
-          className="absolute inset-0 border-2 border-transparent border-t-foreground rounded-full"
+          className="absolute inset-0 border-2 border-transparent border-t-white rounded-full"
           animate={{ rotate: 360 }}
           transition={{
             duration: 1,
@@ -48,7 +48,7 @@ export function OrbitalLoader({
           }}
         />
         <motion.div
-          className="absolute inset-2 border-2 border-transparent border-t-foreground rounded-full"
+          className="absolute inset-2 border-2 border-transparent border-t-white rounded-full"
           animate={{ rotate: -360 }}
           transition={{
             duration: 1.5,
@@ -57,7 +57,7 @@ export function OrbitalLoader({
           }}
         />
         <motion.div
-          className="absolute inset-4 border-2 border-transparent border-t-foreground rounded-full"
+          className="absolute inset-4 border-2 border-transparent border-t-white rounded-full"
           animate={{ rotate: 360 }}
           transition={{
             duration: 0.8,

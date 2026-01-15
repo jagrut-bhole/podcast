@@ -3,11 +3,12 @@ import { AccessToken } from "livekit-server-sdk";
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY!;
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET!;
 
-export function generateLiveKitToken(
+export async function generateLiveKitToken(
   roomName: string,
   participantIdentity: string,
   participantName: string,
-) {
+  isViewer: boolean = false,
+): Promise<string> {
   const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
     identity: participantIdentity,
     name: participantName,
@@ -16,9 +17,10 @@ export function generateLiveKitToken(
   token.addGrant({
     roomJoin: true,
     room: roomName,
-    canPublish: true,
-    canPublishData: true,
+    canPublish: !isViewer,
+    canPublishData: !isViewer,
     canSubscribe: true,
   });
-  return token.toJwt();
+
+  return await token.toJwt();
 }

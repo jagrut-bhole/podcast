@@ -11,7 +11,7 @@ export function VideoLayout() {
   const localParticipant = participants.find((p) => p.isLocal);
 
   return (
-    <div className="relative h-full bg-gray-900">
+    <div className="relative h-full bg-[#151515]">
       {/* Remote participant (main view) */}
       {remoteParticipants[0] && (
         <div className="h-full">

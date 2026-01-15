@@ -3,12 +3,13 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-import { signOut } from "next-auth/react";
 import axios from "axios";
 import { useToast } from "@/components/ui/toast";
 import Asidebar from "@/components/Asidebar";
 import FormSection from "@/components/Form-section";
 import { SessionData } from "@/types/type";
+import { OrbitalLoader } from "@/components/ui/orbital-loader";
+import JoinMeetingModal from "@/components/JoinMeetingModal";
 
 interface Meeting {
   id: string;
@@ -27,6 +28,7 @@ export default function DashboardPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [showJoinModal, setShowJoinModal] = useState(false);
 
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -57,7 +59,11 @@ export default function DashboardPage() {
     try {
       const res = await axios.get("/api/meetings");
       if (res.data.success) {
-        setMeetings(res.data.data);
+        // Filter out ended meetings - only show SCHEDULED and LIVE
+        const activeMeetings = res.data.data.filter(
+          (m: Meeting) => m.status === "SCHEDULED" || m.status === "LIVE"
+        );
+        setMeetings(activeMeetings);
       }
     } catch (error) {
       console.error("Error fetching meetings:", error);
@@ -68,7 +74,7 @@ export default function DashboardPage() {
     setMenuOpenId(null);
     try {
       const res = await axios.delete("/api/meetings/delete", {
-        data: { meetingId }
+        data: { meetingId },
       });
       if (res.data.success) {
         showToast("Meeting deleted successfully", "success", "top-right");
@@ -83,12 +89,12 @@ export default function DashboardPage() {
   if (status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#151515] text-white">
-        <p>Loading...</p>
+        <OrbitalLoader message="Loading..." />
       </div>
     );
   }
 
-  if (!session || !session.user) {
+  if (!session || !session?.user) {
     return null;
   }
 
@@ -132,7 +138,11 @@ export default function DashboardPage() {
       }
     } catch (error: any) {
       console.error("Error creating meeting:", error);
-      showToast(error.response?.data?.message || "Error creating meeting", "error", "top-right");
+      showToast(
+        error.response?.data?.message || "Error creating meeting",
+        "error",
+        "top-right",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +151,9 @@ export default function DashboardPage() {
   const getCardDateDisplay = (dateStr: string | null) => {
     if (!dateStr) return { month: "", day: "" };
     const date = new Date(dateStr);
-    const month = date.toLocaleString("default", { month: "short" }).toUpperCase();
+    const month = date
+      .toLocaleString("default", { month: "short" })
+      .toUpperCase();
     const day = date.getDate();
     return { month, day };
   };
@@ -153,31 +165,44 @@ export default function DashboardPage() {
     const start = new Date(meeting.scheduledAt);
     const end = new Date(start.getTime() + 60 * 60 * 1000); // 1h default
 
-    const format = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    const format = (d: Date) =>
+      d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
     const now = new Date();
-    const isToday = start.getDate() === now.getDate() && start.getMonth() === now.getMonth() && start.getFullYear() === now.getFullYear();
+    const isToday =
+      start.getDate() === now.getDate() &&
+      start.getMonth() === now.getMonth() &&
+      start.getFullYear() === now.getFullYear();
     const dayPrefix = isToday ? "Today" : start.toLocaleDateString();
 
     return `${dayPrefix} • ${format(start)} - ${format(end)}`;
-  }
+  };
+
+  const setEnterCodeActive = () => {
+    setShowJoinModal(true);
+  };
 
   return (
     <div className="flex min-h-screen bg-[#151515]">
       <Asidebar />
       <main className="flex-1 overflow-auto p-10 relative">
-        <div className="flex justify-between items-center mb-12">
-          <h1 className="text-4xl font-bold text-white tracking-tight">Home</h1>
+        <div className="flex justify-end items-center mb-12">
           <div className="flex items-center space-x-3">
             <button
+              onClick={() => setEnterCodeActive()}
+              className="bg-[#252525] hover:bg-[#333] text-white px-6 py-3 rounded-xl text-sm font-semibold transition-all border border-gray-800 shadow-xl flex items-center space-x-2 cursor-pointer"
+            >
+              <span>Join Public Meeting</span>
+            </button>
+            <button
               onClick={() => setActiveMode("live")}
-              className="bg-white hover:bg-gray-200 text-black px-6 py-3 rounded-xl text-sm font-semibold transition-all shadow-xl flex items-center space-x-2"
+              className="bg-white hover:bg-gray-200 text-black px-6 py-3 rounded-xl text-sm font-semibold transition-all shadow-xl flex items-center space-x-2 cursor-pointer"
             >
               <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></div>
               <span>Go Live</span>
             </button>
             <button
               onClick={() => setActiveMode("plan")}
-              className="bg-[#252525] hover:bg-[#333] text-white px-6 py-3 rounded-xl text-sm font-semibold transition-all border border-gray-800 shadow-xl flex items-center space-x-2"
+              className="bg-[#252525] hover:bg-[#333] text-white px-6 py-3 rounded-xl text-sm font-semibold transition-all border border-gray-800 shadow-xl flex items-center space-x-2 cursor-pointer"
             >
               <svg
                 className="w-5 h-5"
@@ -198,26 +223,43 @@ export default function DashboardPage() {
         </div>
 
         <section>
-          <h2 className="text-2xl font-bold text-white mb-6">Schedules</h2>
+          <h2 className="text-2xl font-bold text-white mb-6">Schedules :</h2>
 
           {meetings.length === 0 ? (
-            <p className="text-gray-500">No meetings found.</p>
+            <p className="flex items-center justify-center mt-10 text-gray-500">
+              No projects scheduled. Click &quot;Plan meeting&quot; or &quot;Go
+              Live&quot; to get started.
+            </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {meetings.map((meeting) => {
-                const { month, day } = getCardDateDisplay(meeting.scheduledAt || meeting.createdAt);
+                const { month, day } = getCardDateDisplay(
+                  meeting.scheduledAt || meeting.createdAt,
+                );
                 return (
-                  <div key={meeting.id} className="bg-[#1c1c1c] rounded-2xl overflow-hidden border border-gray-800/50 hover:border-gray-700 transition-all group relative">
+                  <div
+                    key={meeting.id}
+                    className="bg-[#1c1c1c] rounded-2xl overflow-hidden border border-gray-800/50 hover:border-gray-700 transition-all group relative"
+                  >
                     {/* Three dots menu */}
-                    <div className="absolute top-4 right-4 z-10" ref={menuOpenId === meeting.id ? menuRef : null}>
+                    <div
+                      className="absolute top-4 right-4 z-10"
+                      ref={menuOpenId === meeting.id ? menuRef : null}
+                    >
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setMenuOpenId(menuOpenId === meeting.id ? null : meeting.id);
+                          setMenuOpenId(
+                            menuOpenId === meeting.id ? null : meeting.id,
+                          );
                         }}
                         className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-white"
                       >
-                        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="w-5 h-5"
+                          fill="currentColor"
+                        >
                           <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
                         </svg>
                       </button>
@@ -225,11 +267,24 @@ export default function DashboardPage() {
                       {menuOpenId === meeting.id && (
                         <div className="absolute right-0 mt-2 w-36 bg-[#252525] border border-gray-800 rounded-lg shadow-2xl py-1 animate-in fade-in zoom-in-95 duration-100">
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleDeleteMeeting(meeting.id); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteMeeting(meeting.id);
+                            }}
                             className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-400/10 flex items-center space-x-2"
                           >
-                            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <svg
+                              viewBox="0 0 24 24"
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
                             </svg>
                             <span>Delete</span>
                           </button>
@@ -242,8 +297,12 @@ export default function DashboardPage() {
                       onClick={() => router.push(`/meeting/${meeting.id}`)}
                     >
                       <div className="text-center group-hover:scale-110 transition-transform duration-300">
-                        <div className="text-[#a5a5ff] font-bold text-xl tracking-wider">{month}</div>
-                        <div className="text-[#a5a5ff] font-bold text-3xl">{day}</div>
+                        <div className="text-[#a5a5ff] font-bold text-xl tracking-wider">
+                          {month}
+                        </div>
+                        <div className="text-[#a5a5ff] font-bold text-3xl">
+                          {day}
+                        </div>
                       </div>
                       {meeting.status === "LIVE" && (
                         <div className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center space-x-1 uppercase tracking-wider">
@@ -253,7 +312,9 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <div className="p-5">
-                      <h3 className="text-white font-bold text-lg mb-2 truncate">{meeting.title}</h3>
+                      <h3 className="text-white font-bold text-lg mb-2 truncate">
+                        {meeting.title}
+                      </h3>
                       <p className="text-gray-400 text-xs font-medium">
                         {formatTimeRange(meeting)}
                       </p>
@@ -281,6 +342,10 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Join Meeting Modal */}
+        {showJoinModal && (
+          <JoinMeetingModal onClose={() => setShowJoinModal(false)} />
+        )}
       </main>
     </div>
   );

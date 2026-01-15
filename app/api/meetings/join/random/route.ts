@@ -84,6 +84,7 @@ export async function POST(req: NextRequest) {
       meeting.livekitRoomName,
       session.user.id,
       session.user.name || session.user.email,
+      true, // isViewer: true for public code joins
     );
 
     return NextResponse.json({

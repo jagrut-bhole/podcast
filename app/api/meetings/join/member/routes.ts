@@ -101,10 +101,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const token = generateLiveKitToken(
+    const token = await generateLiveKitToken(
       meeting.livekitRoomName,
       session.user.id,
-      session.user.name || session.user.email,
+      session.user.name || session.user.email || "Guest",
     );
 
     await prisma.participant.upsert({

@@ -1,8 +1,6 @@
-// components/meeting-room/ChatPanel.tsx
 "use client";
 
-import { useChat, useTracks } from "@livekit/components-react";
-import { Track } from "livekit-client";
+import { useChat } from "@livekit/components-react";
 import { useState } from "react";
 
 export function ChatPanel({ meetingId }: { meetingId: string }) {
@@ -40,6 +38,7 @@ export function ChatPanel({ meetingId }: { meetingId: string }) {
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           placeholder="Type a message..."
+          className="text-white"
         />
       </div>
     </div>

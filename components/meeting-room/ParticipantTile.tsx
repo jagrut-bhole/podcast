@@ -8,13 +8,22 @@ export function ParticipantTile({ participant }: { participant: Participant }) {
     <div className="relative h-full w-full bg-gray-800">
       {/* Video */}
       <VideoTrack
-        participant={participant}
-        source={Track.Source.Camera}
+        trackRef={{
+          participant,
+          source: Track.Source.Camera,
+          publication: participant.getTrackPublication(Track.Source.Camera),
+        }}
         className="h-full w-full object-cover"
       />
 
       {/* Audio */}
-      <AudioTrack participant={participant} source={Track.Source.Microphone} />
+      <AudioTrack
+        trackRef={{
+          participant,
+          source: Track.Source.Microphone,
+          publication: participant.getTrackPublication(Track.Source.Microphone),
+        }}
+      />
 
       {/* Name overlay */}
       <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 py-1 rounded text-white text-sm">

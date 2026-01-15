@@ -3,12 +3,14 @@ import { useEffect, useState } from "react";
 import { MeetingRoom } from "@/components/meeting-room/MeetingRoom";
 import { OrbitalLoader } from "@/components/ui/orbital-loader";
 import axios from "axios";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/components/ui/toast";
 
 export default function MeetingPage() {
   const { meetingId } = useParams<{ meetingId: string }>();
+  const searchParams = useSearchParams();
+  const isViewer = searchParams.get("viewer") === "true";
 
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
@@ -37,9 +39,13 @@ export default function MeetingPage() {
         meetingId: meetingId,
       });
 
+      console.log("Token response:", response.data);
+
       if (response.data.success) {
         setToken(response.data.data.token);
         setServerUrl(response.data.data.serverUrl);
+        console.log("Token and serverUrl set successfully");
+        console.log("ServerURL:", response.data.data.serverUrl);
       }
     } catch (error) {
       console.error("Error fetching token:", error);
@@ -51,6 +57,7 @@ export default function MeetingPage() {
   };
 
   const handleDisconnect = async () => {
+    console.log("Disconnect triggered - handleDisconnect called");
     try {
       await axios.patch(`/api/meetings/${meetingId}`, {
         action: "leave",
@@ -58,28 +65,28 @@ export default function MeetingPage() {
     } catch (error) {
       console.error("Error leaving meeting:", error);
     }
-    router.replace("/");
+    router.replace("/home");
   };
 
   if (status === "loading" || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-slate-950 via-indigo-950 to-slate-950">
-        <OrbitalLoader message="Connecting to meeting..." />
+      <div className="flex items-center justify-center min-h-screen bg-[#151515]">
+        <OrbitalLoader className="text-white" message="Connecting to meeting..." />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-br from-slate-950 via-indigo-950 to-slate-950 text-white">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#151515] text-white">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Unable to Join Meeting</h1>
           <p className="text-red-400 mb-6">{error}</p>
           <button
-            onClick={() => router.push("/meeting")}
-            className="px-6 py-2 bg-indigo-600 rounded-lg hover:bg-indigo-700"
+            onClick={() => router.push("/home")}
+            className="px-6 py-2 bg-[#151515] rounded-lg hover:bg-[#1515151] border border-white transition-colors"
           >
-            Back to Join Page
+            Back to Home
           </button>
         </div>
       </div>
@@ -88,8 +95,8 @@ export default function MeetingPage() {
 
   if (!token || !serverUrl) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-slate-950 via-indigo-950 to-slate-950">
-        <OrbitalLoader message="Preparing meeting room..." />
+      <div className="flex text-white items-center justify-center min-h-screen bg-[#151515]">
+        <OrbitalLoader className="" message="Preparing meeting room..." />
       </div>
     );
   }
@@ -100,6 +107,7 @@ export default function MeetingPage() {
       serverUrl={serverUrl}
       meetingId={meetingId}
       onDisconnect={handleDisconnect}
+      isViewer={isViewer}
     />
   );
 }

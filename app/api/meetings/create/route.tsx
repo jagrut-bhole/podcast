@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { generateLiveKitToken } from "@/lib/livekit";
+import { EmailServices } from "@/services/emails";
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -120,6 +120,43 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       },
       update: {},
     });
+
+    if (
+      participantEmails &&
+      participantEmails.length > 0 &&
+      meeting.scheduledAt
+    ) {
+      try {
+        const emailService = new EmailServices();
+        const meetingLink = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/home`;
+        const scheduledDate = new Date(meeting.scheduledAt);
+        const formattedDate = scheduledDate.toLocaleString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZoneName: "short",
+        });
+
+        emailService.SendMeetingInvite(
+          participantEmails,
+          session.user.name || session.user.email || "A colleague",
+          meeting.title,
+          meetingLink,
+          formattedDate,
+          meeting.publicCode,
+        );
+
+        console.log(
+          `Invitation emails sent to ${participantEmails.length} participants`,
+        );
+      } catch (emailError) {
+        console.error("Error sending invitation emails:", emailError);
+        // Don't fail the meeting creation if emails fail
+      }
+    }
 
     return NextResponse.json({
       success: true,
