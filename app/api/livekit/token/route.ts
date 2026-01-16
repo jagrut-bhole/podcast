@@ -28,7 +28,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         id: meetingId,
       },
     });
-    console.log("[Token] Meeting found:", meeting?.id, "Status:", meeting?.status, "Host:", meeting?.hostId);
+    console.log(
+      "[Token] Meeting found:",
+      meeting?.id,
+      "Status:",
+      meeting?.status,
+      "Host:",
+      meeting?.hostId,
+    );
 
     if (!meeting) {
       return NextResponse.json(
@@ -63,7 +70,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         },
       },
     });
-    console.log("[Token] Existing participant:", existingParticipant?.id, "Is host:", meeting.hostId === session.user.id);
+    console.log(
+      "[Token] Existing participant:",
+      existingParticipant?.id,
+      "Is host:",
+      meeting.hostId === session.user.id,
+    );
 
     // If user is not a participant yet, check if they're the host and add them
     if (!existingParticipant) {

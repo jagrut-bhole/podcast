@@ -17,6 +17,8 @@ interface Meeting {
   scheduledAt: string | null;
   status: "SCHEDULED" | "LIVE" | "ENDED";
   createdAt: string;
+  inviteCode?: string;
+  publicCode?: string;
 }
 
 export default function DashboardPage() {
@@ -26,6 +28,7 @@ export default function DashboardPage() {
 
   const [activeMode, setActiveMode] = useState<"plan" | "live" | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [createdMeeting, setCreatedMeeting] = useState<Meeting | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -61,7 +64,7 @@ export default function DashboardPage() {
       if (res.data.success) {
         // Filter out ended meetings - only show SCHEDULED and LIVE
         const activeMeetings = res.data.data.filter(
-          (m: Meeting) => m.status === "SCHEDULED" || m.status === "LIVE"
+          (m: Meeting) => m.status === "SCHEDULED" || m.status === "LIVE",
         );
         setMeetings(activeMeetings);
       }
@@ -84,6 +87,12 @@ export default function DashboardPage() {
       console.error("Error deleting meeting:", error);
       showToast("Failed to delete meeting", "error", "top-right");
     }
+  };
+
+  const copyToClipboard = (text: string | undefined) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    showToast("Copied to clipboard", "success", "top-right");
   };
 
   if (status === "loading") {
@@ -109,8 +118,8 @@ export default function DashboardPage() {
         });
 
         if (response.data.success) {
-          showToast("Live session starting...", "success", "top-right");
-          router.push(`/meeting/${response.data.data.meetingId}`);
+          showToast("Live session created!", "success", "top-right");
+          setCreatedMeeting(response.data.data);
         }
       } else {
         // Parse date (YYYY-MM-DD) and time (HH:MM AM/PM)
@@ -133,7 +142,7 @@ export default function DashboardPage() {
         if (response.data.success) {
           showToast("Meeting scheduled successfully", "success", "top-right");
           fetchMeetings();
-          setActiveMode(null);
+          setCreatedMeeting(response.data.data);
         }
       }
     } catch (error: any) {
@@ -163,7 +172,7 @@ export default function DashboardPage() {
     if (!meeting.scheduledAt) return "No time set";
 
     const start = new Date(meeting.scheduledAt);
-    const end = new Date(start.getTime() + 60 * 60 * 1000); // 1h default
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
 
     const format = (d: Date) =>
       d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
@@ -331,12 +340,107 @@ export default function DashboardPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="bg-[#1c1c1c] w-full max-w-2xl rounded-2xl border border-gray-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
               <div className="p-8">
-                <FormSection
-                  mode={activeMode}
-                  onClose={() => setActiveMode(null)}
-                  onSubmit={handleCreateMeeting}
-                  isLoading={isLoading}
-                />
+                {createdMeeting ? (
+                  <div className="space-y-8 py-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div className="text-center space-y-2">
+                      <h2 className="text-2xl font-bold text-white">
+                        {activeMode === "live"
+                          ? "Ready to go live!"
+                          : "Meeting Scheduled!"}
+                      </h2>
+                      <p className="text-gray-500 text-sm">
+                        Share these codes with your participants to join the
+                        session.
+                      </p>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider pl-1">
+                          Invite Code
+                        </label>
+                        <div className="flex bg-[#1c1c1c] p-4 rounded-xl border border-gray-800 items-center justify-between group">
+                          <span className="text-2xl font-mono font-bold text-white tracking-widest">
+                            {createdMeeting.inviteCode}
+                          </span>
+                          <button
+                            onClick={() =>
+                              copyToClipboard(createdMeeting.inviteCode)
+                            }
+                            className="text-gray-500 hover:text-white transition-colors p-2 hover:bg-gray-800 rounded-lg flex items-center space-x-2"
+                          >
+                            <span className="text-xs font-semibold">Copy</span>
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+                              ></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider pl-1">
+                          Public Code
+                        </label>
+                        <div className="flex bg-[#1c1c1c] p-4 rounded-xl border border-gray-800 items-center justify-between group">
+                          <span className="text-2xl font-mono font-bold text-white tracking-widest">
+                            {createdMeeting.publicCode}
+                          </span>
+                          <button
+                            onClick={() =>
+                              copyToClipboard(createdMeeting.publicCode)
+                            }
+                            className="text-gray-500 hover:text-white transition-colors p-2 hover:bg-gray-800 rounded-lg flex items-center space-x-2"
+                          >
+                            <span className="text-xs font-semibold">Copy</span>
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+                              ></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex justify-center pt-4">
+                      <button
+                        onClick={() => {
+                          if (activeMode === "live") {
+                            router.push(`/meeting/${createdMeeting.id}`);
+                          } else {
+                            setActiveMode(null);
+                            setCreatedMeeting(null);
+                          }
+                        }}
+                        className="w-full bg-white text-black py-4 rounded-xl font-bold hover:bg-gray-200 transition-colors shadow-xl"
+                      >
+                        {activeMode === "live" ? "Start Meeting Now" : "Done"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <FormSection
+                    mode={activeMode}
+                    onClose={() => setActiveMode(null)}
+                    onSubmit={handleCreateMeeting}
+                    isLoading={isLoading}
+                  />
+                )}
               </div>
             </div>
           </div>

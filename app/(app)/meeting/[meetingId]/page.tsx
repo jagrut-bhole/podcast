@@ -71,7 +71,10 @@ export default function MeetingPage() {
   if (status === "loading" || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#151515]">
-        <OrbitalLoader className="text-white" message="Connecting to meeting..." />
+        <OrbitalLoader
+          className="text-white"
+          message="Connecting to meeting..."
+        />
       </div>
     );
   }

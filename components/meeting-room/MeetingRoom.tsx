@@ -3,7 +3,7 @@
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
 import { VideoLayout } from "./VideoLayout";
 import { ControlBar } from "./ControlBar";
-import { Chat } from "@livekit/components-react";
+import { ChatPanel } from "./ChatPanel";
 import { useState } from "react";
 
 interface MeetingRoomProps {
@@ -51,8 +51,8 @@ export function MeetingRoom({
 
         {/* Chat panel */}
         {showChat && (
-          <div className="w-80 border-l bg-[#1a1a1a]">
-            <Chat />
+          <div className="w-96 border-l border-white/5 bg-[#121212] flex flex-col shadow-2xl z-20">
+            <ChatPanel meetingId={meetingId} />
           </div>
         )}
       </div>

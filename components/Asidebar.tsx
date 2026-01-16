@@ -143,12 +143,22 @@ export default function Asidebar() {
         {/* Footer Nav */}
         <div className="space-y-2">
           {[
-            { label: "What's New", icon: Sparkles, dot: true },
-            { label: "Settings", icon: Settings },
+            {
+              label: "What's New",
+              icon: Sparkles,
+              dot: true,
+              onclick: () => router.push("/whats-new"),
+            },
+            {
+              label: "Settings",
+              icon: Settings,
+              onclick: () => router.replace("/settings"),
+            },
           ].map((item) => (
             <button
               key={item.label}
               className={`cursor-pointer w-full flex items-center ${isSidebarOpen ? "px-4" : "justify-center"} py-2 text-gray-400 hover:text-white transition-all group relative`}
+              onClick={item.onclick}
             >
               <item.icon className="w-5 h-5" />
               {isSidebarOpen && (
@@ -170,7 +180,10 @@ export default function Asidebar() {
             <div className="absolute bottom-full left-0 mb-4 w-72 bg-[#1c1c1c] border border-gray-800 rounded-2xl shadow-2xl z-[200] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
               {/* Menu Items */}
               <div className="p-2 space-y-1">
-                <button className="w-full flex items-center px-4 py-3 rounded-xl hover:bg-[#252525] transition-colors group text-white">
+                <button
+                  className="w-full flex items-center px-4 py-3 rounded-xl hover:bg-[#252525] transition-colors group text-white"
+                  onClick={() => router.push("/watch-demo")}
+                >
                   <div className="w-5 h-5 flex items-center justify-center opacity-80">
                     <svg
                       fill="none"
@@ -193,6 +206,27 @@ export default function Asidebar() {
                     </svg>
                   </div>
                   <span className="ml-4 text-sm font-bold">Watch a demo</span>
+                </button>
+                <button
+                  className="w-full flex items-center px-4 py-3 rounded-xl hover:bg-[#252525] transition-colors group text-white"
+                  onClick={() => router.push("/profile")}
+                >
+                  <div className="w-5 h-5 flex items-center justify-center opacity-80">
+                    <svg
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      className="w-5 h-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  </div>
+                  <span className="ml-4 text-sm font-bold">Profile</span>
                 </button>
 
                 <button className="w-full flex items-center px-4 py-3 rounded-xl hover:bg-[#252525] transition-colors group text-white">
