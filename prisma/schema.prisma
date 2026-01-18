@@ -88,6 +88,8 @@ model Meeting {
   inviteCode      String        @unique @db.VarChar(6)
   publicCode      String        @unique @db.VarChar(6)
   livekitRoomName String        @unique
+  memberCapacity  Int           @default(4)
+  viewerCapacity  Int           @default(10)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 

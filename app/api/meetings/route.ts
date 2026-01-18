@@ -20,7 +20,18 @@ export async function GET(req: NextRequest) {
 
     const meetings = await prisma.meeting.findMany({
       where: {
-        hostId: session.user.id,
+        OR: [
+          {
+            hostId: session.user.id,
+          },
+          {
+            participants: {
+              some: {
+                userId: session.user.id,
+              },
+            },
+          },
+        ],
       },
       select: {
         id: true,

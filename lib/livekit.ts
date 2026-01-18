@@ -12,14 +12,15 @@ export async function generateLiveKitToken(
   const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
     identity: participantIdentity,
     name: participantName,
+    metadata: JSON.stringify({ isViewer }),
   });
 
   token.addGrant({
     roomJoin: true,
     room: roomName,
-    canPublish: !isViewer,
-    canPublishData: !isViewer,
-    canSubscribe: true,
+    canPublish: !isViewer, // Viewers cannot publish video/audio
+    canPublishData: true, // Allow chat for everyone
+    canSubscribe: true, // Everyone can watch/listen
   });
 
   return await token.toJwt();

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { generateLiveKitToken } from "@/lib/livekit";
+import { m } from "framer-motion";
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,6 +38,14 @@ export async function POST(req: NextRequest) {
       where: {
         publicCode: publicCode,
       },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        livekitRoomName: true,
+        hostId: true,
+        viewerCapacity: true,
+      },
     });
 
     if (!meeting) {
@@ -63,37 +72,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const participant = await prisma.participant.upsert({
-      where: {
-        meetingId_userId: {
-          meetingId: meeting.id,
-          userId: session.user.id,
-        },
-      },
-      create: {
-        meetingId: meeting.id,
-        userId: session.user.id,
-        joinedAt: new Date(),
-      },
-      update: {
-        leftAt: null,
-      },
-    });
+    // Note: Viewer capacity tracking is simplified since viewers aren't stored in DB
+    // Consider implementing Redis-based tracking for accurate viewer counts
+    // For now, we allow up to viewerCapacity viewers without strict enforcement
 
+    // Generate token for viewer - DO NOT add to participants table
     const token = await generateLiveKitToken(
       meeting.livekitRoomName,
       session.user.id,
-      session.user.name || session.user.email,
+      session.user.name || session.user.email || "Guest",
       true, // isViewer: true for public code joins
     );
 
     return NextResponse.json({
       success: true,
-      message: `${session.user.name} joined the meeting successfully as a guest.`,
+      message: `${session.user.name || "Guest"} joined the meeting successfully as a viewer.`,
       data: {
-        participantId: participant.id,
         token,
-        serverUrl: process.env.LIVEKIT_URL,
+        serverUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL,
         meeting: {
           id: meeting.id,
           title: meeting.title,

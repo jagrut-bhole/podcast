@@ -3,33 +3,40 @@
 import { useParticipants } from "@livekit/components-react";
 import { ParticipantTile } from "./ParticipantTile";
 
-export function VideoLayout() {
+export function VideoLayout({ isViewer = false }: { isViewer?: boolean }) {
   const participants = useParticipants();
 
-  // Separate local and remote
-  const remoteParticipants = participants.filter((p) => !p.isLocal);
-  const localParticipant = participants.find((p) => p.isLocal);
+  const visibleParticipants = participants.filter((p) => {
+    // If we are a viewer, we should not see ourselves (local participant)
+    if (isViewer && p.isLocal) {
+      return false;
+    }
+
+    // Filter out other viewers (both local and remote) based on metadata
+    try {
+      const metadata = p.metadata ? JSON.parse(p.metadata) : {};
+      return !metadata.isViewer;
+    } catch {
+      return true;
+    }
+  });
 
   return (
-    <div className="relative h-full bg-[#151515]">
-      {/* Remote participant (main view) */}
-      {remoteParticipants[0] && (
-        <div className="h-full">
-          <ParticipantTile participant={remoteParticipants[0]} />
+    <div className="relative h-full bg-[#151515] pl-35 pr-35 p-5 pb-20">
+      {visibleParticipants.length === 0 ? (
+        <div className="flex items-center justify-center h-full text-white">
+          <p className="text-lg text-gray-400">Waiting for host to join...</p>
         </div>
-      )}
-
-      {/* Local participant (PIP corner) */}
-      {localParticipant && (
-        <div className="absolute bottom-4 right-4 w-64 h-48 rounded-lg overflow-hidden shadow-lg">
-          <ParticipantTile participant={localParticipant} />
-        </div>
-      )}
-
-      {/* Waiting message */}
-      {remoteParticipants.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center text-white">
-          <p>Waiting for other participant...</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-5 h-full">
+          {visibleParticipants.slice(0, 4).map((participant) => (
+            <div
+              key={participant.identity}
+              className="aspect-video bg-gray-900 rounded-lg overflow-hidden w-full h-100"
+            >
+              <ParticipantTile participant={participant} />
+            </div>
+          ))}
         </div>
       )}
     </div>

@@ -1,92 +1,110 @@
 "use client";
-
-import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { useState, useRef } from "react";
 import { useToast } from "@/components/ui/toast";
-import axios from "axios";
 
-export default function ProfilePage() {
-  const { data: session, status } = useSession();
-  const [loading, setLoading] = useState<boolean>(false);
-  const [profileData, setProfileData] = useState(null);
+export default function TestPage() {
   const { showToast } = useToast();
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
 
-  const fetchProfile = async () => {
-    if (!session?.user?.id) {
-      showToast("User not authenticated", "error", "center");
-      return;
-    }
-
-    setLoading(true);
-
+  const startRecording = async () => {
     try {
-      const response = await axios.get(`/api/users/${session.user.id}`);
-      setProfileData(response.data);
-      showToast("Profile fetched successfully!", "success", "center");
+      // Get screen capture
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { mediaSource: "screen" },
+        audio: true, // System audio
+      });
+
+      // Get microphone audio
+      const audioStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
+
+      // Combine streams
+      const tracks = [
+        ...displayStream.getVideoTracks(),
+        ...displayStream.getAudioTracks(),
+        ...audioStream.getAudioTracks(),
+      ];
+
+      const combinedStream = new MediaStream(tracks);
+
+      // Create MediaRecorder
+      const mediaRecorder = new MediaRecorder(combinedStream, {
+        mimeType: "video/webm;codecs=vp9",
+      });
+
+      mediaRecorderRef.current = mediaRecorder;
+      recordedChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, {
+          type: "video/webm",
+        });
+
+        // Download the recording
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `recording-${Date.now()}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        // Stop all tracks
+        combinedStream.getTracks().forEach((track) => track.stop());
+        showToast("Recording saved", "success", "top-right");
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      showToast("Recording started", "success", "top-right");
     } catch (error) {
-      console.error("Error fetching profile:", error);
-      showToast("Failed to fetch profile!!", "error", "center");
-    } finally {
-      setLoading(false);
+      console.error("Error starting recording:", error);
+      showToast("Failed to start recording", "error", "top-right");
     }
   };
 
-  if (status === "loading") {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-lg">Loading session...</p>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-lg">Please sign in to view your profile</p>
-      </div>
-    );
-  }
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      showToast("Recording stopped", "success", "top-right");
+    }
+  };
 
   return (
-    <div className="flex flex-col justify-center items-center h-screen space-y-4 p-8">
-      <h1 className="text-2xl font-bold mb-4">Profile Test Page</h1>
-
-      <div className="bg-neutral-800 p-6 rounded-lg space-y-2 w-full max-w-md">
-        <p className="text-sm text-neutral-400">User ID:</p>
-        <p className="font-mono text-sm break-all">{session.user.id}</p>
-
-        <p className="text-sm text-neutral-400 mt-4">Email:</p>
-        <p className="text-sm">{session.user.email}</p>
-
-        <p className="text-sm text-neutral-400 mt-4">Name:</p>
-        <p className="text-sm">{session.user.name}</p>
-      </div>
-
-      <button
-        onClick={fetchProfile}
-        disabled={loading}
-        className="bg-blue-600 hover:bg-blue-700 disabled:bg-neutral-600 text-white font-medium py-2 px-6 rounded-full"
-      >
-        {loading ? "Loading..." : "Fetch Profile from API"}
-      </button>
-
-      {profileData && (
-        <div className="bg-neutral-800 p-6 rounded-lg space-y-2 w-full max-w-md mt-4">
-          <p className="text-sm text-neutral-400">Profile Data from API:</p>
-          <pre className="text-xs overflow-auto max-h-96">
-            {JSON.stringify(profileData, null, 2)}
-          </pre>
+    <div className="flex justify-center items-center h-screen bg-[#151515] flex-col gap-20">
+      {isRecording && (
+        <div className="absolute top-10 bg-red-600 text-white px-6 py-3 rounded-full animate-pulse font-semibold">
+          🔴 Recording...
         </div>
       )}
 
-      <button
-        onClick={() =>
-          showToast("Operation successful.", "success", "top-right")
-        }
-        className="bg-neutral-100 hover:bg-opacity-90 text-black font-medium py-2 px-4 rounded-full mt-4"
-      >
-        Show Success Toast
-      </button>
+      <h1 className="text-white text-2xl font-bold">Jagrut</h1>
+
+      <div className="flex gap-10">
+        <button
+          className="text-white bg-[#2563eb] border border-white rounded-md px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={startRecording}
+          disabled={isRecording}
+        >
+          {isRecording ? "Recording..." : "Start Recording"}
+        </button>
+        <button
+          className="text-white bg-[#ef4444] border border-white rounded-md px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={stopRecording}
+          disabled={!isRecording}
+        >
+          Stop Recording
+        </button>
+      </div>
     </div>
   );
 }

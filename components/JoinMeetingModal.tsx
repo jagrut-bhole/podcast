@@ -31,6 +31,17 @@ export function JoinMeetingModal({ onClose }: JoinMeetingModalProps) {
 
       if (response.data.success) {
         showToast(response.data.message, "success", "top-right");
+
+        // Store viewer token and serverUrl in sessionStorage
+        sessionStorage.setItem(
+          `meeting_${response.data.data.meeting.id}_token`,
+          response.data.data.token,
+        );
+        sessionStorage.setItem(
+          `meeting_${response.data.data.meeting.id}_serverUrl`,
+          response.data.data.serverUrl,
+        );
+
         // Navigate to meeting page with viewer flag
         router.push(`/meeting/${response.data.data.meeting.id}?viewer=true`);
       }

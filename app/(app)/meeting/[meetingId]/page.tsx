@@ -17,6 +17,7 @@ export default function MeetingPage() {
   const [loading, setLoading] = useState(true);
   const { showToast } = useToast();
   const [error, setError] = useState<string | null>(null);
+  const [isHost, setIsHost] = useState(false);
 
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -35,6 +36,35 @@ export default function MeetingPage() {
   const fetchToken = async () => {
     setLoading(true);
     try {
+      // For viewers, check if token is already in sessionStorage
+      if (isViewer) {
+        const storedToken = sessionStorage.getItem(
+          `meeting_${meetingId}_token`,
+        );
+        const storedServerUrl = sessionStorage.getItem(
+          `meeting_${meetingId}_serverUrl`,
+        );
+
+        if (storedToken && storedServerUrl) {
+          setToken(storedToken);
+          setServerUrl(storedServerUrl);
+          setIsHost(false);
+          setLoading(false);
+          return;
+        } else {
+          setError("Invalid viewer session. Please rejoin the meeting.");
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Fetch meeting details to check if user is host
+      const meetingResponse = await axios.get(`/api/meetings/${meetingId}`);
+      if (meetingResponse.data.success) {
+        const meeting = meetingResponse.data.data;
+        setIsHost(meeting.host.id === session?.user?.id);
+      }
+
       const response = await axios.post("/api/livekit/token", {
         meetingId: meetingId,
       });
@@ -68,13 +98,26 @@ export default function MeetingPage() {
     router.replace("/home");
   };
 
+  const handleEndForAll = async () => {
+    console.log("End for all triggered");
+    try {
+      const response = await axios.post(`/api/meetings/end-meeting-for-all`, {
+        meetingId,
+      });
+      if (response.data.success) {
+        showToast("Meeting ended for all participants", "success", "top-right");
+      }
+    } catch (error) {
+      console.error("Error ending meeting:", error);
+      showToast("Failed to end meeting", "error", "top-right");
+    }
+    router.replace("/home");
+  };
+
   if (status === "loading" || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#151515]">
-        <OrbitalLoader
-          className="text-white"
-          message="Connecting to meeting..."
-        />
+      <div className="flex items-center justify-center min-h-screen bg-[#151515] text-white">
+        <OrbitalLoader message="Connecting to meeting..." />
       </div>
     );
   }
@@ -99,7 +142,7 @@ export default function MeetingPage() {
   if (!token || !serverUrl) {
     return (
       <div className="flex text-white items-center justify-center min-h-screen bg-[#151515]">
-        <OrbitalLoader className="" message="Preparing meeting room..." />
+        <OrbitalLoader message="Preparing meeting room..." />
       </div>
     );
   }
@@ -110,6 +153,8 @@ export default function MeetingPage() {
       serverUrl={serverUrl}
       meetingId={meetingId}
       onDisconnect={handleDisconnect}
+      onEndForAll={handleEndForAll}
+      isHost={isHost}
       isViewer={isViewer}
     />
   );

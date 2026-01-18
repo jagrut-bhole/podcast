@@ -43,6 +43,8 @@ export async function POST(req: NextRequest) {
         livekitRoomName: true,
         hostId: true,
         inviteCode: true,
+        memberCapacity: true,
+        participants: true,
       },
     });
 
@@ -82,18 +84,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const participantCount = await prisma.participant.count({
+    // Check member capacity (exclude host from count)
+    const activeMemberCount = await prisma.participant.count({
       where: {
         meetingId: meeting.id,
         leftAt: null,
+        userId: {
+          not: meeting.hostId, // Don't count the host
+        },
       },
     });
 
-    if (participantCount >= 4 && meeting.hostId !== session.user.id) {
+    // If user is not the host and capacity is reached
+    if (
+      session.user.id !== meeting.hostId &&
+      activeMemberCount >= (meeting.memberCapacity || 4)
+    ) {
       return NextResponse.json(
         {
           success: false,
-          message: "Meeting capacity is fulled!!",
+          message: "Meeting member capacity is full!",
         },
         {
           status: 403,

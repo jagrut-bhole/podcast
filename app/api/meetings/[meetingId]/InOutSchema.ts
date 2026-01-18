@@ -9,9 +9,9 @@ const hostSchema = z.object({
 
 const meetingSchema = z.object({
   id: z.string(),
-  title: z.string().min(5).max(100),
+  title: z.string().min(1).max(100),
   scheduledAt: z.coerce.date().nullable(),
-  inviteCode: z.string().length(8),
+  inviteCode: z.string().min(6).max(10),
   host: hostSchema,
   status: z.enum(["SCHEDULED", "LIVE", "ENDED"]),
   updatedAt: z.coerce.date(),
