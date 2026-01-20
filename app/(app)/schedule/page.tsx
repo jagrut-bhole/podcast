@@ -25,6 +25,8 @@ export default function SchedulePage() {
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
+  const [loading, setLoading] = useState<boolean>(false);
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/signin");
@@ -37,7 +39,6 @@ export default function SchedulePage() {
     }
   }, [session]);
 
-  // Click away listener for menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -49,10 +50,10 @@ export default function SchedulePage() {
   }, []);
 
   const fetchEndedMeetings = async () => {
+    setLoading(true);
     try {
       const res = await axios.get("/api/meetings");
       if (res.data.success) {
-        // Filter only ended meetings
         const endedMeetings = res.data.data.filter(
           (m: Meeting) => m.status === "ENDED",
         );
@@ -60,6 +61,36 @@ export default function SchedulePage() {
       }
     } catch (error) {
       console.error("Error fetching meetings:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadPodcast = async (meetingId: string) => {
+    setLoading(true);
+
+    try {
+      const response = await axios.get("/api/download-meeting", {
+        params: {
+          meetingId,
+        },
+      });
+
+      if (response.data.success) {
+        showToast("Podcast Downloaded", "success", "top-right");
+        const url = response.data.data.downloadUrl;
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `podcast-${meetingId}.webm`;
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error("Error downloading podcast:", error);
+      showToast("Failed to generate download link", "error", "top-right");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -77,12 +108,6 @@ export default function SchedulePage() {
       console.error("Error deleting meeting:", error);
       showToast("Failed to delete podcast", "error", "top-right");
     }
-  };
-
-  const handleDownloadPodcast = (meetingId: string) => {
-    // Placeholder for download functionality
-    showToast("Download feature coming soon!", "info", "top-right");
-    setMenuOpenId(null);
   };
 
   const getMonthAndDay = (dateStr: string | null) => {
@@ -155,11 +180,11 @@ export default function SchedulePage() {
               return (
                 <div
                   key={meeting.id}
-                  className="bg-[#121212] rounded-2xl p-5 border border-gray-800 shadow-lg hover:border-gray-700 transition-all group cursor-pointer hover:scale-[1.01] relative"
+                  className="bg-[#121212] rounded-2xl p-5 border border-gray-800 shadow-lg hover:border-gray-700 transition-all group  hover:scale-[1.01] relative"
                 >
                   {/* Three dots menu */}
                   <div
-                    className="absolute top-4 right-4 z-10"
+                    className="absolute top-6 right-6 z-10"
                     ref={menuOpenId === meeting.id ? menuRef : null}
                   >
                     <button
@@ -182,28 +207,6 @@ export default function SchedulePage() {
 
                     {menuOpenId === meeting.id && (
                       <div className="absolute right-0 mt-2 w-40 bg-[#252525] border border-gray-800 rounded-lg shadow-2xl py-1 animate-in fade-in zoom-in-95 duration-100">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownloadPodcast(meeting.id);
-                          }}
-                          className="w-full px-4 py-2 text-left text-sm text-white hover:bg-white/10 flex items-center space-x-2"
-                        >
-                          <svg
-                            viewBox="0 0 24 24"
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                            />
-                          </svg>
-                          <span>Download</span>
-                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -266,6 +269,14 @@ export default function SchedulePage() {
                             meeting.createdAt,
                         )}
                       </span>
+                    </div>
+                    <div className="text-black text-sm font-medium p-3">
+                      <button
+                        onClick={() => handleDownloadPodcast(meeting.id)}
+                        className="px-4 py-2 bg-white rounded-2xl hover:bg-gray-200 transition-all hover:cursor-pointer"
+                      >
+                        Download
+                      </button>
                     </div>
                   </div>
                 </div>

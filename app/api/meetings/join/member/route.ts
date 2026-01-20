@@ -84,18 +84,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check member capacity (exclude host from count)
     const activeMemberCount = await prisma.participant.count({
       where: {
         meetingId: meeting.id,
         leftAt: null,
         userId: {
-          not: meeting.hostId, // Don't count the host
+          not: meeting.hostId,
         },
       },
     });
 
-    // If user is not the host and capacity is reached
     if (
       session.user.id !== meeting.hostId &&
       activeMemberCount >= (meeting.memberCapacity || 4)

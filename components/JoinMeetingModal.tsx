@@ -7,10 +7,14 @@ import { useToast } from "@/components/ui/toast";
 
 interface JoinMeetingModalProps {
   onClose: () => void;
+  type?: "public" | "invite";
 }
 
-export function JoinMeetingModal({ onClose }: JoinMeetingModalProps) {
-  const [publicCode, setPublicCode] = useState("");
+export function JoinMeetingModal({
+  onClose,
+  type = "public",
+}: JoinMeetingModalProps) {
+  const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { showToast } = useToast();
@@ -18,21 +22,27 @@ export function JoinMeetingModal({ onClose }: JoinMeetingModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (publicCode.length !== 6) {
+    if (code.length !== 6) {
       showToast("Please enter a 6-digit code", "error", "top-right");
       return;
     }
 
     setIsLoading(true);
     try {
-      const response = await axios.post("/api/meetings/join/random", {
-        publicCode: publicCode.toUpperCase(),
-      });
+      const endpoint =
+        type === "invite"
+          ? "/api/meetings/join/member"
+          : "/api/meetings/join/random";
+      const payload =
+        type === "invite"
+          ? { inviteCode: code.toUpperCase() }
+          : { publicCode: code.toUpperCase() };
+
+      const response = await axios.post(endpoint, payload);
 
       if (response.data.success) {
         showToast(response.data.message, "success", "top-right");
 
-        // Store viewer token and serverUrl in sessionStorage
         sessionStorage.setItem(
           `meeting_${response.data.data.meeting.id}_token`,
           response.data.data.token,
@@ -42,8 +52,10 @@ export function JoinMeetingModal({ onClose }: JoinMeetingModalProps) {
           response.data.data.serverUrl,
         );
 
-        // Navigate to meeting page with viewer flag
-        router.push(`/meeting/${response.data.data.meeting.id}?viewer=true`);
+        const isViewer = type === "public";
+        router.push(
+          `/meeting/${response.data.data.meeting.id}${isViewer ? "?viewer=true" : ""}`,
+        );
       }
     } catch (error: any) {
       const errorMessage =
@@ -57,7 +69,7 @@ export function JoinMeetingModal({ onClose }: JoinMeetingModalProps) {
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
     if (value.length <= 6) {
-      setPublicCode(value);
+      setCode(value);
     }
   };
 
@@ -66,7 +78,9 @@ export function JoinMeetingModal({ onClose }: JoinMeetingModalProps) {
       <div className="bg-[#1c1c1c] w-full max-w-md rounded-2xl border border-gray-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="p-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white">Join Meeting</h2>
+            <h2 className="text-2xl font-bold text-white">
+              {type === "invite" ? "Join with Invite Code" : "Join Public Meeting"}
+            </h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-white transition-colors"
@@ -90,11 +104,11 @@ export function JoinMeetingModal({ onClose }: JoinMeetingModalProps) {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Meeting Code
+                {type === "invite" ? "Invite Code" : "Public Code"}
               </label>
               <input
                 type="text"
-                value={publicCode}
+                value={code}
                 onChange={handleCodeChange}
                 placeholder="Enter 6-digit code"
                 className="w-full px-4 py-3 bg-[#252525] border border-gray-700 rounded-lg text-white text-center text-2xl font-mono tracking-widest focus:outline-none focus:border-white transition-colors"
@@ -116,7 +130,7 @@ export function JoinMeetingModal({ onClose }: JoinMeetingModalProps) {
               </button>
               <button
                 type="submit"
-                disabled={isLoading || publicCode.length !== 6}
+                disabled={isLoading || code.length !== 6}
                 className="flex-1 px-4 py-3 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isLoading ? (

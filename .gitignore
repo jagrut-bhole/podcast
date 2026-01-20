@@ -41,8 +41,3 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
-
-Architecture.md
-Endpoints.txt
-README_REDIS_CACHING.md
-REDIS_SCHEMA_GUIDE.md

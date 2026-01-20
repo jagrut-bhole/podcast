@@ -5,7 +5,7 @@ import { SessionData } from "@/types/type";
 import { TIME_OPTIONS } from "@/constants/timeConstants";
 
 interface FormSectionProps {
-  mode: "plan" | "live";
+  mode: "plan" | "live" | "view";
   onClose: () => void;
   onSubmit: (data: SessionData) => void;
   isLoading?: boolean;
@@ -26,7 +26,6 @@ export default function FormSection({
     return `${year}-${month}-${day}`;
   };
 
-  // Calculate initial suggestion for planning
   const getInitialTimes = () => {
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();

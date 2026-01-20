@@ -26,12 +26,14 @@ export default function DashboardPage() {
   const router = useRouter();
   const { showToast } = useToast();
 
-  const [activeMode, setActiveMode] = useState<"plan" | "live" | null>(null);
+  const [activeMode, setActiveMode] = useState<"plan" | "live" | "view" | null>(
+    null,
+  );
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [createdMeeting, setCreatedMeeting] = useState<Meeting | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
-  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [joinType, setJoinType] = useState<"public" | "invite" | null>(null);
 
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -47,7 +49,6 @@ export default function DashboardPage() {
     }
   }, [session]);
 
-  // Click away listener for menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -62,7 +63,6 @@ export default function DashboardPage() {
     try {
       const res = await axios.get("/api/meetings");
       if (res.data.success) {
-        // Filter out ended meetings - only show SCHEDULED and LIVE
         const activeMeetings = res.data.data.filter(
           (m: Meeting) => m.status === "SCHEDULED" || m.status === "LIVE",
         );
@@ -111,7 +111,7 @@ export default function DashboardPage() {
     setIsLoading(true);
     try {
       if (activeMode === "live") {
-        // Use go-live endpoint for immediate start
+
         const response = await axios.post("/api/meetings/go-live", {
           title: data.name,
           participantEmails: data.inviteEmails,
@@ -187,7 +187,11 @@ export default function DashboardPage() {
   };
 
   const setEnterCodeActive = () => {
-    setShowJoinModal(true);
+    setJoinType("public");
+  };
+
+  const setEnterInviteCodeActive = () => {
+    setJoinType("invite");
   };
 
   return (
@@ -197,20 +201,32 @@ export default function DashboardPage() {
         <div className="flex justify-end items-center mb-12">
           <div className="flex items-center space-x-3">
             <button
+              onClick={() => setEnterInviteCodeActive()}
+              className="bg-[#252525] hover:bg-[#333] text-white px-6 py-3 rounded-xl text-sm font-semibold transition-all border border-gray-800 shadow-xl flex items-center space-x-2 cursor-pointer"
+            >
+              <span>Enter Invite Code</span>
+            </button>
+            <button
               onClick={() => setEnterCodeActive()}
               className="bg-[#252525] hover:bg-[#333] text-white px-6 py-3 rounded-xl text-sm font-semibold transition-all border border-gray-800 shadow-xl flex items-center space-x-2 cursor-pointer"
             >
               <span>Join Public Meeting</span>
             </button>
             <button
-              onClick={() => setActiveMode("live")}
+              onClick={() => {
+                setCreatedMeeting(null);
+                setActiveMode("live");
+              }}
               className="bg-white hover:bg-gray-200 text-black px-6 py-3 rounded-xl text-sm font-semibold transition-all shadow-xl flex items-center space-x-2 cursor-pointer"
             >
               <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></div>
               <span>Go Live</span>
             </button>
             <button
-              onClick={() => setActiveMode("plan")}
+              onClick={() => {
+                setCreatedMeeting(null);
+                setActiveMode("plan");
+              }}
               className="bg-[#252525] hover:bg-[#333] text-white px-6 py-3 rounded-xl text-sm font-semibold transition-all border border-gray-800 shadow-xl flex items-center space-x-2 cursor-pointer"
             >
               <svg
@@ -320,13 +336,27 @@ export default function DashboardPage() {
                         </div>
                       )}
                     </div>
-                    <div className="p-5">
-                      <h3 className="text-white font-bold text-lg mb-2 truncate">
-                        {meeting.title}
-                      </h3>
-                      <p className="text-gray-400 text-xs font-medium">
-                        {formatTimeRange(meeting)}
-                      </p>
+                    <div className="flex justify-between items-center">
+                      <div className="p-5 flex-1 min-w-0">
+                        <h3 className="text-white font-bold text-lg mb-1 truncate">
+                          {meeting.title}
+                        </h3>
+                        <p className="text-gray-400 text-xs font-medium">
+                          {formatTimeRange(meeting)}
+                        </p>
+                      </div>
+                      <div className="pr-5">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCreatedMeeting(meeting);
+                            setActiveMode("view");
+                          }}
+                          className="text-[10px] uppercase tracking-wider font-bold text-black bg-white px-4 py-2 cursor-pointer rounded-full hover:bg-gray-200 transition-all shadow-lg whitespace-nowrap active:scale-95"
+                        >
+                          View Code
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -346,7 +376,9 @@ export default function DashboardPage() {
                       <h2 className="text-2xl font-bold text-white">
                         {activeMode === "live"
                           ? "Ready to go live!"
-                          : "Meeting Scheduled!"}
+                          : activeMode === "view"
+                            ? "Meeting Codes"
+                            : "Meeting Scheduled!"}
                       </h2>
                       <p className="text-gray-500 text-sm">
                         Share these codes with your participants to join the
@@ -447,8 +479,11 @@ export default function DashboardPage() {
         )}
 
         {/* Join Meeting Modal */}
-        {showJoinModal && (
-          <JoinMeetingModal onClose={() => setShowJoinModal(false)} />
+        {joinType && (
+          <JoinMeetingModal
+            type={joinType}
+            onClose={() => setJoinType(null)}
+          />
         )}
       </main>
     </div>

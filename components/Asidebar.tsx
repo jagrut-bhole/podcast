@@ -53,7 +53,7 @@ export default function Asidebar() {
 
   return (
     <aside
-      className={`bg-[#0d0d0d] h-screen flex flex-col transition-all duration-300 border-r border-gray-900 ${isSidebarOpen ? "w-64" : "w-20"}`}
+      className={`bg-[#0d0d0d] h-screen flex flex-col transition-all duration-300 border-r border-gray-900 sticky top-0 z-40 ${isSidebarOpen ? "w-64" : "w-20"}`}
     >
       <div className="p-6 flex items-center justify-between">
         {isSidebarOpen ? (
@@ -119,11 +119,10 @@ export default function Asidebar() {
             <Link
               key={item.id}
               href={item.href}
-              className={`w-full flex items-center cursor-pointer ${isSidebarOpen ? "px-4" : "justify-center"} py-3 rounded-xl transition-all duration-200 group ${
-                isActive
+              className={`w-full flex items-center cursor-pointer ${isSidebarOpen ? "px-4" : "justify-center"} py-3 rounded-xl transition-all duration-200 group ${isActive
                   ? "bg-[#1a1a1a] text-white"
                   : "text-gray-400 hover:text-white hover:bg-[#111]"
-              }`}
+                }`}
             >
               <item.icon className="w-5 h-5" />
               {isSidebarOpen && (
@@ -173,15 +172,12 @@ export default function Asidebar() {
           ))}
         </div>
 
-        {/* User Profile */}
         <div className="relative" ref={profileRef}>
-          {/* Profile Menu Popup */}
           {isProfileMenuOpen && (
             <div className="absolute bottom-full left-0 mb-4 w-72 bg-[#1c1c1c] border border-gray-800 rounded-2xl shadow-2xl z-[200] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
-              {/* Menu Items */}
               <div className="p-2 space-y-1">
                 <button
-                  className="w-full flex items-center px-4 py-3 rounded-xl hover:bg-[#252525] transition-colors group text-white"
+                  className="w-full flex items-center px-4 py-3 rounded-xl hover:bg-[#252525] transition-colors group text-white cursor-pointer"
                   onClick={() => router.push("/watch-demo")}
                 >
                   <div className="w-5 h-5 flex items-center justify-center opacity-80">

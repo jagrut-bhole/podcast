@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
         scheduledAt: true,
         status: true,
         inviteCode: true,
+        publicCode: true,
         createdAt: true,
         startedAt: true,
         endedAt: true,
