@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ meetingId: string }> },
-) {
+export async function POST(req: NextRequest) {
   try {
     const session = await auth();
 
@@ -21,7 +18,9 @@ export async function POST(
       );
     }
 
-    const meetingId = (await params).meetingId;
+    const body = await req.json();
+    const { meetingId, code: inviteCode } = body;
+
     if (!meetingId) {
       return NextResponse.json(
         {
@@ -33,8 +32,6 @@ export async function POST(
         },
       );
     }
-
-    const inviteCode = await req.json();
 
     if (!inviteCode) {
       return NextResponse.json(
@@ -78,7 +75,7 @@ export async function POST(
       );
     }
 
-    if (meeting.inviteCode !== inviteCode.code) {
+    if (meeting.inviteCode !== inviteCode) {
       return NextResponse.json(
         {
           success: false,

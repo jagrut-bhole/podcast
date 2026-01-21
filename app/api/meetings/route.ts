@@ -94,7 +94,7 @@ interface MeetingCreateRequest {
   participantEmails: string[];
 }
 
-export async function POST(req: NextResponse): Promise<NextResponse> {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
 
