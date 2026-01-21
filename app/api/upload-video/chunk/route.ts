@@ -43,11 +43,5 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Increase the size limit for chunk uploads (default is 4MB)
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: "20mb",
-    },
-  },
-};
+// Force dynamic rendering for file uploads
+export const dynamic = 'force-dynamic';
