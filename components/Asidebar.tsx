@@ -2,7 +2,6 @@ import {
   Home,
   Calendar,
   Sparkles,
-  Settings,
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
@@ -147,12 +146,7 @@ export default function Asidebar() {
               icon: Sparkles,
               dot: true,
               onclick: () => router.push("/whats-new"),
-            },
-            {
-              label: "Settings",
-              icon: Settings,
-              onclick: () => router.replace("/settings"),
-            },
+            }
           ].map((item) => (
             <button
               key={item.label}

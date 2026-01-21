@@ -17,7 +17,7 @@ export async function proxy(req: NextRequest) {
         (url.pathname.startsWith('/home')
             || url.pathname.startsWith('/schedule')
             || url.pathname.startsWith('/profile')
-            || url.pathname.startsWith('/meetings/*')
+            || url.pathname.startsWith('/meetings/:path*')
         )
     ) {
         return NextResponse.redirect(new URL('/signin', req.url))
@@ -32,7 +32,7 @@ export const config = {
         "/home",
         "/schedule",
         "/profile",
-        "/meetings/*",
+        "/meetings/:path*",
         "/signin"
     ]
 }
