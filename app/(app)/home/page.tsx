@@ -103,6 +103,14 @@ export default function DashboardPage() {
     );
   }
 
+    if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#151515] text-white">
+        <OrbitalLoader message="Loading Meetings..." />
+      </div>
+    )
+  }
+
   if (!session || !session?.user) {
     return null;
   }

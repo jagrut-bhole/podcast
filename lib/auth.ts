@@ -124,7 +124,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async session({ session, token }) {
-      // Add user data from token to session
+
       if (token && session.user) {
         session.user.id = token.id as string;
         session.user.email = token.email as string;

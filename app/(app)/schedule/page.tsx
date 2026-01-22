@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useToast } from "@/components/ui/toast";
 import Asidebar from "@/components/Asidebar";
+import { OrbitalLoader } from "@/components/ui/orbital-loader";
 
 interface Meeting {
   id: string;
@@ -143,6 +144,14 @@ export default function SchedulePage() {
         <p>Loading...</p>
       </div>
     );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#151515] text-white">
+        <OrbitalLoader message="Loading Meetings..." />
+      </div>
+    )
   }
 
   if (!session || !session.user) {
