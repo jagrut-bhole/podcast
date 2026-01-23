@@ -21,13 +21,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Complete the multipart upload
     const { location } = await completeUpload(uploadId, key, parts);
 
-    // Generate a presigned URL for download (valid for 7 days)
     const downloadUrl = await generatePresignedUrl(key, 7 * 24 * 60 * 60);
 
-    // Update recording and meeting with the file info
     await prisma.recording.update({
       where: { meetingId },
       data: {
@@ -53,7 +50,6 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Error completing upload:", error);
 
-    // Update recording status to FAILED
     const { meetingId } = await req.json();
     if (meetingId) {
       await prisma.recording
@@ -62,7 +58,7 @@ export async function POST(req: NextRequest) {
           data: { status: "FAILED" },
         })
         .catch(() => {
-          // Ignore error if recording doesn't exist
+          console.error("Recording not found");
         });
     }
 
@@ -73,7 +69,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Vercel-specific configurations
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const maxDuration = 60; // 60 seconds max execution time
+export const maxDuration = 60;

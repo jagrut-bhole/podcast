@@ -20,10 +20,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Abort the multipart upload on S3
     await abortUpload(uploadId, key);
 
-    // Update recording status to FAILED if meetingId provided
     if (meetingId) {
       await prisma.recording
         .update({
@@ -31,7 +29,7 @@ export async function POST(req: NextRequest) {
           data: { status: "FAILED" },
         })
         .catch(() => {
-          // Ignore error if recording doesn't exist
+          console.error("Recording not found");
         });
     }
 
@@ -45,7 +43,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Vercel-specific configurations
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const maxDuration = 30; // 30 seconds max execution time
+export const maxDuration = 30;

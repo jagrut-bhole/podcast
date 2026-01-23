@@ -23,11 +23,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert blob to buffer
     const arrayBuffer = await chunk.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Upload the chunk to S3
     const result = await uploadChunk(uploadId, key, partNumber, buffer);
 
     return NextResponse.json({
@@ -43,8 +41,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Force dynamic rendering for file uploads
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const maxDuration = 60; // 60 seconds max execution time
+export const maxDuration = 60; 
 

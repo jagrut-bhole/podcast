@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify the meeting exists and user has access
     const meeting = await prisma.meeting.findUnique({
       where: { id: meetingId },
       include: {
@@ -44,10 +43,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Initialize multipart upload
     const { uploadId, key } = await initializeUpload(meetingId);
 
-    // Create or update recording record
     const recording = await prisma.recording.upsert({
       where: { meetingId },
       create: {
@@ -75,7 +72,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Vercel-specific configurations for file uploads
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const maxDuration = 60; // 60 seconds max execution time
+export const maxDuration = 60;
