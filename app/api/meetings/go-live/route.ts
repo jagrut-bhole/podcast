@@ -51,9 +51,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         scheduledAt: new Date(),
         startedAt: new Date(),
       },
+      select: {
+        inviteCode: true,
+        publicCode: true,
+        id: true,
+        title: true,
+      }
     });
 
-    // Add participants
+    // Adding participants
     if (participantEmails && participantEmails.length > 0) {
       const users = await prisma.user.findMany({
         where: { email: { in: participantEmails } },
@@ -72,7 +78,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // Add host as participant
+    // Adding host as participant
     await prisma.participant.upsert({
       where: {
         meetingId_userId: {
@@ -88,7 +94,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       update: {},
     });
 
-    // Send instant meeting invitations
     if (participantEmails && participantEmails.length > 0) {
       try {
         const emailService = new EmailServices();
@@ -117,7 +122,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         );
       } catch (emailError) {
         console.error("Error sending live meeting invitations:", emailError);
-        // Don't fail the meeting creation if emails fail
       }
     }
 
@@ -130,20 +134,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       {
         success: true,
         message: "Meeting started successfully!!!",
-        data: {
-          meetingId: meeting.id,
-        },
+        meetingId: meeting.id,
+        publicCode: meeting.publicCode,
+        inviteCode: meeting.inviteCode,
+        id: meeting.id,
       },
       {
         status: 200,
       },
     );
   } catch (error) {
-    console.log("Error in creating the live meeting!!!");
+    console.error("Error in creating the live meeting:", error);
     return NextResponse.json(
       {
         success: false,
-        message: "Error in creating the live meeting!!!",
+        message: error instanceof Error ? error.message : "Error in creating the live meeting!!!",
+        error: error instanceof Error ? error.stack : String(error),
       },
       {
         status: 500,

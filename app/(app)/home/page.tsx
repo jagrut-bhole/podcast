@@ -103,7 +103,7 @@ export default function DashboardPage() {
     );
   }
 
-    if (isLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#151515] text-white">
         <OrbitalLoader message="Loading Meetings..." />
@@ -127,7 +127,16 @@ export default function DashboardPage() {
 
         if (response.data.success) {
           showToast("Live session created!", "success", "top-right");
-          setCreatedMeeting(response.data.data);
+          // The response now has the meeting data at root level
+          setCreatedMeeting({
+            id: response.data.id || response.data.meetingId,
+            inviteCode: response.data.inviteCode,
+            publicCode: response.data.publicCode,
+            title: data.name,
+            status: "LIVE",
+            scheduledAt: null,
+            createdAt: new Date().toISOString(),
+          });
         }
       } else {
         // Parse date (YYYY-MM-DD) and time (HH:MM AM/PM)
@@ -150,7 +159,16 @@ export default function DashboardPage() {
         if (response.data.success) {
           showToast("Meeting scheduled successfully", "success", "top-right");
           fetchMeetings();
-          setCreatedMeeting(response.data.data);
+          // The response now has the meeting data at root level
+          setCreatedMeeting({
+            id: response.data.id || response.data.meetingId,
+            inviteCode: response.data.inviteCode,
+            publicCode: response.data.publicCode,
+            title: data.name,
+            status: "SCHEDULED",
+            scheduledAt: scheduledAt,
+            createdAt: new Date().toISOString(),
+          });
         }
       }
     } catch (error: any) {

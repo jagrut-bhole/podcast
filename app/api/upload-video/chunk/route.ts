@@ -45,3 +45,6 @@ export async function POST(req: NextRequest) {
 
 // Force dynamic rendering for file uploads
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 60; // 60 seconds max execution time
+

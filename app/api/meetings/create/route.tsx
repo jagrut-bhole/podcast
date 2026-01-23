@@ -161,16 +161,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       success: true,
       message: "Meeting scheduled successfully",
-      data: {
-        meetingId: meeting.id,
-        title: meeting.title,
-        scheduledAt: meeting.scheduledAt,
-        status: meeting.status,
-        inviteCode: meeting.inviteCode,
-        publicCode: meeting.publicCode,
-        livekitRoomName: meeting.livekitRoomName,
-        participants,
-      },
+      meetingId: meeting.id,
+      id: meeting.id,
+      title: meeting.title,
+      scheduledAt: meeting.scheduledAt,
+      status: meeting.status,
+      inviteCode: meeting.inviteCode,
+      publicCode: meeting.publicCode,
+      livekitRoomName: meeting.livekitRoomName,
+      participants,
     });
   } catch (error) {
     console.error("Error creating meeting: ", error);

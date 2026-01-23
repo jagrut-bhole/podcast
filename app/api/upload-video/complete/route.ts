@@ -72,3 +72,8 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+// Vercel-specific configurations
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 60; // 60 seconds max execution time
